@@ -75,11 +75,11 @@ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
 LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
 CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, LIFE, OR PROFITS; OR BUSINESS
 INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
+POSSIBILITY OF SUCH DAMAGE.  
 */
 
 #include "DBH1.h"
@@ -115,9 +115,7 @@ void DBH1::init(byte _IN1A, byte _IN1B, byte _IN2A, byte _IN2B, byte _ENA, byte 
 
 void DBH1::Forward(int _Apwm, int _Bpwm){
 	_Apwm = abs(_Apwm);                 	//Prevent PWM value from being negative
-	_Bpwm = abs(_Bpwm);
-	digitalWrite(ENA, HIGH);				//Set ENABLE pins HIGH to allow movement
-	digitalWrite(ENB, HIGH);             
+	_Bpwm = abs(_Bpwm);            
 	analogWrite(IN1A, _Apwm);				//PWM to 1st set of inputs
 	analogWrite(IN1B, _Bpwm);
 	digitalWrite(IN2A, LOW);				//Set 2nd set of inputs LOW for forward movement
@@ -126,9 +124,7 @@ void DBH1::Forward(int _Apwm, int _Bpwm){
 
 void DBH1::Reverse(int _Apwm, int _Bpwm){
 	_Apwm = abs(_Apwm);						//Prevent PWM value from being negative                	
-	_Bpwm = abs(_Bpwm);
-	digitalWrite(ENA, HIGH);				//Set ENABLE pins HIGH to allow movement
-	digitalWrite(ENB, HIGH);             
+	_Bpwm = abs(_Bpwm);          
 	analogWrite(IN2A, _Apwm);				//PWM to 2nd set of inputs
 	analogWrite(IN2B, _Bpwm);
 	digitalWrite(IN1A, LOW);				//Set 1st set of inputs LOW for reverse movement
@@ -159,54 +155,52 @@ int DBH1::GetCurrent(int AnalogPin){		//Reads current draw from driver and outpu
 	return Current;
 }
 
-void DBH::ForwardA(int _Apwm){
+void DBH1::ForwardA(int _Apwm){
 	_Apwm = abs(_Apwm);
-	digitalWrite(ENA, HIGH);
 	analogWrite(IN1A, _Apwm);
 	digitalWrite(IN2A, LOW);
 }
 
-void DBH::ForwardB(int _Bpwm){
+void DBH1::ForwardB(int _Bpwm){
 	_Bpwm = abs(_Bpwm);
-	digitalWrite(ENB, HIGH);
 	analogWrite(IN1B, _Bpwm);
 	digitalWrite(IN2B, LOW);
 }
 
-void DBH::ReverseA(int _Apwm){
+void DBH1::ReverseA(int _Apwm){
 	_Apwm = abs(_Apwm);
-	digitalWrite(ENA, HIGH);
 	analogWrite(IN2A, _Apwm);
 	digitalWrite(IN1A, LOW);
 }
 
-void DBH::ReverseB(int _Bpwm){
+void DBH1::ReverseB(int _Bpwm){
 	_Bpwm = abs(_Bpwm);
-	digitalWrite(ENB, HIGH);
 	analogWrite(IN2B, _Apwm);
 	digitalWrite(IN2A, LOW);
 }
 
-void DBH::DisableA(){
-	digitalWrite(IN1A, HIGH);
-	digitalWrite(IN2A, HIGH);
+void DBH1::DisableA(){
 	digitalWrite(ENA, LOW);
 }
 
-void DBH::DisableB(){
-	digitalWrite(IN1B, HIGH);
-	digitalWrite(IN2B, HIGH);
+void DBH1::DisableB(){
+	digitalWrite(ENA, LOW);
+}
+
+void DBH1::EnableA(){
+	digitalWrite(ENA, HIGH);
+}
+
+void DBH1::EnableB(){
+	digitalWrite(ENB, HIGH);
+}
+
+void DBH1::EnableBoth(){
+	digitalWrite(ENA, HIGH);
+	digitalWrite(ENB, HIGH);
+}
+
+void DBH1::DisableBoth(){
+	digitalWrite(ENA, LOW);
 	digitalWrite(ENB, LOW);
-}
-
-void DBH::BrakeA(){
-	digitalWrite(IN1A, HIGH);
-	digitalWrite(IN2A, HIGH);
-	digitalWrite(ENA, HIGH);
-}
-
-void DBH::BrakeB(){
-	digitalWrite(IN1A, HIGH);
-	digitalWrite(IN2A, HIGH);
-	digitalWrite(ENA, HIGH);
 }

@@ -22,8 +22,10 @@ class DBH1{
 		void ReverseB(int Bpwm);
 		void DisableA();
 		void DisableB();
-		void BrakeA();
-		void BrakeB();
+		void EnableA();
+		void EnableB();
+		void EnableBoth();
+		void DisableBoth();
 };
 
 #endif		
