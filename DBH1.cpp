@@ -94,23 +94,22 @@ int CTA = 0;								//Current input from driver for (A) - Left Motor
 int CTB = 1;								//Current input from driver for (B) - Right Motor
 
 											//Following defines optional parameters that can be passed
-void DBH::init(byte _IN1A = IN1A, byte _IN1B = IN1B, byte _IN2A = IN2A, byte _IN2B = IN2B, byte _ENA = ENA, byte _ENB = ENB, byte _CTA = CTA, byte _CTB = CTB);
 
 void DBH1::init(byte _IN1A, byte _IN1B, byte _IN2A, byte _IN2B, byte _ENA, byte _ENB, byte _CTA, byte _CTB){
-	IN1A = _IN1A							//Allow pins to be reassigned (requires being called with optional arguments)
-	IN1B = _IN1B
-	IN2A = _IN2A
-	IN2B = _IN2B
-	ENA = _ENA
-	ENB = _ENB
-	CTA = _CTA
-	CTB = _CTB
+	IN1A = _IN1A;							//Allow pins to be reassigned (requires being called with optional arguments)
+	IN1B = _IN1B;
+	IN2A = _IN2A;
+	IN2B = _IN2B;
+	ENA = _ENA;
+	ENB = _ENB;
+	CTA = _CTA;
+	CTB = _CTB;
 	pinMode(IN1A, OUTPUT);					//Define pins used as outputs
 	pinMode(IN1B, OUTPUT);
 	pinMode(IN2A, OUTPUT);
 	pinMode(IN2B, OUTPUT);
-	pinMode(EN1, OUTPUT);
-	pinMode(EN2, OUTPUT);
+	pinMode(ENA, OUTPUT);
+	pinMode(ENB, OUTPUT);
 }
 
 void DBH1::Forward(int _Apwm, int _Bpwm){
