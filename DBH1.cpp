@@ -175,7 +175,7 @@ void DBH1::ReverseA(int _Apwm){
 
 void DBH1::ReverseB(int _Bpwm){
 	_Bpwm = abs(_Bpwm);
-	analogWrite(IN2B, _Apwm);
+	analogWrite(IN2B, _Bpwm);
 	digitalWrite(IN2A, LOW);
 }
 
