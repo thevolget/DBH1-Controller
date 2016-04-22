@@ -95,7 +95,7 @@ int CTB = 1;								//Current input from driver for (B) - Right Motor
 
 											//Following defines optional parameters that can be passed
 
-void DBH1::init(byte _IN1A, byte _IN1B, byte _IN2A, byte _IN2B, byte _ENA, byte _ENB, byte _CTA, byte _CTB){
+void DBH1::init(byte _IN1A = IN1A, byte _IN1B = IN1B, byte _IN2A = IN2A, byte _IN2B = IN2B, byte _ENA = ENA, byte _ENB = ENB, byte _CTA = CTA, byte _CTB = CTB){
 	IN1A = _IN1A;							//Allow pins to be reassigned (requires being called with optional arguments)
 	IN1B = _IN1B;
 	IN2A = _IN2A;
