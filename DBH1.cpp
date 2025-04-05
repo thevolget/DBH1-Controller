@@ -8,14 +8,14 @@ can be found on EBay or Aliexpress (usually under the name of 'wingxine').
 
 This library will assume the following pins are used by default:
 
-	ENA - Pin 2
-	ENB - Pin 4
-	IN1A - Pin 3 (Input for motor A - needs to be PWM pin)
-	IN1B - Pin 5 (Input for motor B - needs to be PWM pin)
-	IN2A - Pin 6 (Input for motor A - needs to be PWM pin)
-	IN2B - Pin 9 (Input for motor B - needs to be PWM pin)
-	CTA - Analog Pin 0 (Optional)
-	CTB - Analog Pin 1 (Optional)
+	ENA 	- Pin 2
+	ENB 	- Pin 4
+	IN1A 	- Pin 3 (Input for motor A - needs to be PWM pin)
+	IN1B 	- Pin 5 (Input for motor B - needs to be PWM pin)
+	IN2A 	- Pin 6 (Input for motor A - needs to be PWM pin)
+	IN2B 	- Pin 9 (Input for motor B - needs to be PWM pin)
+	CTA 	- Analog Pin 0 (Optional)
+	CTB 	- Analog Pin 1 (Optional)
 	
 	Pins CTA and CTB are pins for reporting the current draw of the driver back to 
 	the microcontroller.  The driver outputs a analog value based on current draw.
@@ -48,10 +48,10 @@ Library usage:
 		DBH1.ReverseA(PWM value);								Forward or Reverse
 		DBH1.ForwardB(PWM value);
 		DBH1.ReverseB(PWM value);
-		DBH1.DisableA();
-		DBH1.DisableB();
-		DBH1.BrakeA();											UNTESTED - USE WITH CAUTION
-		DBH1.BrakeB();											UNTESTED - USE WITH CAUTION
+		DBH1.ToggleA();											Toggle Motor Enable state (if off, on - if on, off)
+		DBH1.ToggleB();
+		DBH1.GetCurrentA();										Returns motor current draw (50A max)
+		DBH1.GetCurrentB();										Returns motor current draw (50A max)
 		
 		
 Redistribution and use in source and binary forms, with or without
@@ -84,53 +84,45 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "DBH1.h"
 
-int IN1A = 3;								//Motor controller input IN1(A) - Left Motor
-int IN1B = 5;								//Motor controller input IN1(B) - Right Motor
-int IN2A = 6;								//Motor controller input IN2(A) - Left Motor	
-int IN2B = 9;								//Motor controller input IN2(B) - Right Motor
-int ENA = 2;								//Left Motor Enable
-int ENB = 4;								//Right Motor Enable
-int CTA = 0;								//Current input from driver for (A) - Left Motor
-int CTB = 1;								//Current input from driver for (B) - Right Motor
+													//Following defines optional parameters that can be passed
 
-											//Following defines optional parameters that can be passed
-
-void DBH1::init(byte _IN1A = IN1A, byte _IN1B = IN1B, byte _IN2A = IN2A, byte _IN2B = IN2B, byte _ENA = ENA, byte _ENB = ENB, byte _CTA = CTA, byte _CTB = CTB){
-	IN1A = _IN1A;							//Allow pins to be reassigned (requires being called with optional arguments)
-	IN1B = _IN1B;
-	IN2A = _IN2A;
-	IN2B = _IN2B;
-	ENA = _ENA;
-	ENB = _ENB;
-	CTA = _CTA;
-	CTB = _CTB;
-	pinMode(IN1A, OUTPUT);					//Define pins used as outputs
-	pinMode(IN1B, OUTPUT);
-	pinMode(IN2A, OUTPUT);
-	pinMode(IN2B, OUTPUT);
-	pinMode(ENA, OUTPUT);
-	pinMode(ENB, OUTPUT);
+void DBH1::init(byte IN1A, byte IN1B, byte IN2A, byte IN2B, byte ENA, byte ENB, byte CTA, byte CTB){
+    this->IN1A = IN1A;								//Define variables
+    this->IN1B = IN1B;
+    this->IN2A = IN2A;
+    this->IN2B = IN2B;
+    this->ENA = ENA;
+    this->ENB = ENB;
+    this->CTA = CTA;
+    this->CTB = CTB;
+    pinMode(this->IN1A, OUTPUT);					//Initalize Pins
+    pinMode(this->IN1B, OUTPUT);
+    pinMode(this->IN2A, OUTPUT);
+    pinMode(this->IN2B, OUTPUT);
+    pinMode(this->ENA, OUTPUT);
+    pinMode(this->ENB, OUTPUT);
+    pinMode(this->CTA, INPUT);
+    pinMode(this->CTB, INPUT);
 }
 
 void DBH1::Forward(int _Apwm, int _Bpwm){
-	_Apwm = abs(_Apwm);                 	//Prevent PWM value from being negative
-	_Bpwm = abs(_Bpwm);            
-	analogWrite(IN1A, _Apwm);				//PWM to 1st set of inputs
+	_Apwm = constrain(abs(_Apwm), 0, 250);  		// 250/255 ≈ 98% of 255
+	_Bpwm = constrain(abs(_Bpwm), 0, 250);  		// 250/255 ≈ 98% of 255
+	analogWrite(IN1A, _Apwm);						//PWM to 1st set of inputs
 	analogWrite(IN1B, _Bpwm);
-	digitalWrite(IN2A, LOW);				//Set 2nd set of inputs LOW for forward movement
-	digitalWrite(IN2B, LOW);      		
+	DetectDirection(0);
 }
 
 void DBH1::Reverse(int _Apwm, int _Bpwm){
-	_Apwm = abs(_Apwm);						//Prevent PWM value from being negative                	
-	_Bpwm = abs(_Bpwm);          
-	analogWrite(IN2A, _Apwm);				//PWM to 2nd set of inputs
+	_Apwm = constrain(abs(_Apwm), 0, 250);  		// 250/255 ≈ 98% of 255
+	_Bpwm = constrain(abs(_Bpwm), 0, 250);  		// 250/255 ≈ 98% of 255
+	analogWrite(IN2A, _Apwm);						//PWM to 2nd set of inputs
 	analogWrite(IN2B, _Bpwm);
-	digitalWrite(IN1A, LOW);				//Set 1st set of inputs LOW for reverse movement
-	digitalWrite(IN1B, LOW);      		
+	DetectDirection(1);
 }
 
-void DBH1::Braking(){						//Sets all pins HIGH to enable brake
+void DBH1::Braking(){								//Sets all pins HIGH to enable brake
+	#pragma message "Untested - Verify hardware supports before testing"
 	digitalWrite(ENA, HIGH);			
 	digitalWrite(ENB, HIGH);             
 	digitalWrite(IN1A, HIGH);
@@ -139,43 +131,53 @@ void DBH1::Braking(){						//Sets all pins HIGH to enable brake
 	digitalWrite(IN2B, HIGH);      		
 }
 
-void DBH1::Coasting(){						//Disables motor and allows for free roll
-	digitalWrite(IN2A, HIGH);			
-	digitalWrite(IN1B, HIGH);
-	digitalWrite(IN1A, HIGH);
-	digitalWrite(IN2B, HIGH);
+void DBH1::Coasting(){								//Disables motor and allows for free roll
+	digitalWrite(IN2A, LOW);			
+	digitalWrite(IN1B, LOW);
+	digitalWrite(IN1A, LOW);
+	digitalWrite(IN2B, LOW);
   	digitalWrite(ENA, LOW);
 	digitalWrite(ENB, LOW);
 }
 
-int DBH1::GetCurrent(int AnalogPin){		//Reads current draw from driver and outputs back value from 0 - 1023
-	int Current = 0;
-	Current = analogRead(AnalogPin);
-	return Current;
+float DBH1::GetCurrentA() {		
+    return analogRead(CTA) * (50.0 / 1023.0); 
 }
 
-void DBH1::ForwardA(int _Apwm){
-	_Apwm = abs(_Apwm);
+float DBH1::GetCurrentB() {
+    return analogRead(CTB) * (50.0 / 1023.0);
+}
+
+float DBH1::GetCurrentA(byte AnalogPinA) {			//Reads current draw from driver and outputs back value from 0 - 1023.  Uses specified pin as input. 
+	return analogRead(AnalogPinA) * (50.0 / 1023);
+}
+
+float DBH1::GetCurrentB(byte AnalogPinB) {	
+	return analogRead(AnalogPinB) * (50.0 / 1023);
+}
+
+void DBH1::ForwardA(int _Apwm){						//Individual Motor A Control Forward
+	_Apwm = constrain(abs(_Apwm), 0, 250);  		// 250/255 ≈ 98% of 255
 	analogWrite(IN1A, _Apwm);
 	digitalWrite(IN2A, LOW);
 }
 
-void DBH1::ForwardB(int _Bpwm){
-	_Bpwm = abs(_Bpwm);
+void DBH1::ForwardB(int _Bpwm){						//Individual Motor B Control Forward
+	_Bpwm = constrain(abs(_Bpwm), 0, 250);  		// 250/255 ≈ 98% of 255
 	analogWrite(IN1B, _Bpwm);
 	digitalWrite(IN2B, LOW);
 }
 
 void DBH1::ReverseA(int _Apwm){
-	_Apwm = abs(_Apwm);
+	_Apwm = constrain(abs(_Apwm), 0, 250);  		// 250/255 ≈ 98% of 255
 	analogWrite(IN2A, _Apwm);
 	digitalWrite(IN1A, LOW);
 }
 
 void DBH1::ReverseB(int _Bpwm){
-	_Bpwm = abs(_Bpwm);
+	_Bpwm = constrain(abs(_Bpwm), 0, 250);  		// 250/255 ≈ 98% of 255
 	analogWrite(IN2B, _Bpwm);
-	digitalWrite(IN2A, LOW);
+	digitalWrite(IN1B, LOW);
 }
 
 void DBH1::DisableA(){
@@ -183,23 +185,44 @@ void DBH1::DisableA(){
 }
 
 void DBH1::DisableB(){
-	digitalWrite(ENA, LOW);
+	digitalWrite(ENB, LOW);
 }
 
-void DBH1::EnableA(){
-	digitalWrite(ENA, HIGH);
+void DBH1::ToggleA(){
+	EnableA = !EnableA;              				// Flips the state (1→0 or 0→1)
+    digitalWrite(ENA, EnableA);
 }
 
-void DBH1::EnableB(){
-	digitalWrite(ENB, HIGH);
+void DBH1::ToggleB(){
+	EnableB = !EnableB;              				// Flips the state (1→0 or 0→1)
+    digitalWrite(ENB, EnableB);
 }
 
-void DBH1::EnableBoth(){
-	digitalWrite(ENA, HIGH);
-	digitalWrite(ENB, HIGH);
+void DBH1::ToggleBoth(){							//Enable Both Motors
+	EnableA = !EnableA;
+    EnableB = !EnableB;
+    digitalWrite(ENA, EnableA);
+    digitalWrite(ENB, EnableB);
 }
 
 void DBH1::DisableBoth(){
-	digitalWrite(ENA, LOW);
-	digitalWrite(ENB, LOW);
+	EnableA = LOW;
+	EnableB = LOW;
+	digitalWrite(ENA, EnableA);
+    digitalWrite(ENB, EnableB);
 }
+
+void DBH1::DetectDirection (int Dirdetect){			//Used to determine motor direction
+	switch (Dirdetect){
+		case 0:
+			digitalWrite(IN2A, LOW);				//If Direction is 0 - Go Forward
+			digitalWrite(IN2B, LOW);
+			break;
+		case 1:
+			digitalWrite(IN1A, LOW);				//If Direction is 1 - Go Reverse
+			digitalWrite(IN1B, LOW);
+			break;
+		default:
+			break;
+	}
+	
