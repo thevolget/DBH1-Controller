@@ -8,14 +8,14 @@ can be found on EBay or Aliexpress (usually under the name of 'wingxine').
 
 This library will assume the following pins are used by default:
 	
-	ENA - Pin 2
-	ENB - Pin 4
-	IN1A - Pin 3 (Input for motor A - needs to be PWM pin)
-	IN1B - Pin 5 (Input for motor B - needs to be PWM pin)
-	IN2A - Pin 6 (Input for motor A - needs to be PWM pin)
-	IN2B - Pin 9 (Input for motor B - needs to be PWM pin)
-	CTA - Analog Pin 0 (Optional)
-	CTB - Analog Pin 1 (Optional)
+	ENA 	- Pin 2
+	ENB 	- Pin 4
+	IN1A	- Pin 3 (Input for motor A - needs to be PWM pin)
+	IN1B	- Pin 5 (Input for motor B - needs to be PWM pin)
+	IN2A	- Pin 6 (Input for motor A - needs to be PWM pin)
+	IN2B	- Pin 9 (Input for motor B - needs to be PWM pin)
+	CTA 	- Analog Pin 0 (Optional)
+	CTB 	- Analog Pin 1 (Optional)
 	
 Pins CTA and CTB are pins for reporting the current draw of the driver back to 
 the microcontroller.  The driver outputs a analog value based on current draw.
@@ -30,7 +30,7 @@ The driver requires a maximum duty cycle on the PWM input of no more than 98%.
 Any higher might damage the driver / result in instability.
 	
 Library usage:
-	
+
 	Option 1:
 		DBH1.init();	This will use the default pins
 	
@@ -39,19 +39,21 @@ Library usage:
 			pins are used on the microcontroller.  
 	
 	Once defined the motor can be controlled by using:
-	
 		DBH1.Forward(Motor A PWM value, Motor B PWM value);		Moves both motors forward
 		DBH1.Reverse(Motor A PWM value, Motor B PWM value);		Moves both motors reverse
-		DBH1.Braking();							UNTESTED - USE WITH CAUTION
-		DBH1.Coasting();						Disables motor output
-		DBH1.ForwardA(PWM value);					Moves Motor A or B at X% speed
-		DBH1.ReverseA(PWM value);					Forward or Reverse
+		DBH1.Braking();											UNTESTED - USE WITH CAUTION
+		DBH1.Coasting();										Disables motor output
+		DBH1.ForwardA(PWM value);								Moves Motor A or B at X% speed
+		DBH1.ReverseA(PWM value);								Forward or Reverse
 		DBH1.ForwardB(PWM value);
 		DBH1.ReverseB(PWM value);
-		DBH1.DisableA();
-		DBH1.DisableB();
-		DBH1.BrakeA();							UNTESTED - USE WITH CAUTION
-		DBH1.BrakeB();							UNTESTED - USE WITH CAUTION
+		DBH1.ToggleA();											Toggle Motor Enable state (if off, on - if on, off)
+		DBH1.ToggleB();
+		DBH1.ToggleBoth();									
+		DBH1.DisableA();										Disable Motor A
+		DBH1.DisableB();										Disable Motor B
+		DBH1.GetCurrentA(Analog Input Pin);						Returns motor A current draw (50A max)
+		DBH1.GetCurrentB(Analog Input Pin);						Returns motor B current draw (50A max)
 		
 		
 Redistribution and use in source and binary forms, with or without
