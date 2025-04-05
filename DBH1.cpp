@@ -18,9 +18,13 @@ This library will assume the following pins are used by default:
 	CTB 	- Analog Pin 1 (Optional)
 	
 	Pins CTA and CTB are pins for reporting the current draw of the driver back to 
-	the microcontroller.  The driver outputs a analog value based on current draw.
+	the microcontroller.  The driver outputs the amp draw of the motor.  If the Arduino or
+	ESP board is operating at 3.3V, the BoardVoltage value in DBH1.h should be modified 
+	to the respective voltage.  Use of these pins is optional and only necessary for monitoring
+	current draw.
 	
-	EN1 and EN2 are pins for enabling the driver's output to the respective motor.
+	EN1 and EN2 are pins for enabling the driver's output to the respective motor.  The motors must be enabled
+	prior to any forward / reverse movement.  
 	
 	IN1A and IN2A (as well as IN2A and IN2B) are the inputs for motor A (and B 
 	respectively).  When IN1A is driven LOW and IN2A is	provided a PWM signal, the 
@@ -30,6 +34,10 @@ This library will assume the following pins are used by default:
 	The driver requires a maximum duty cycle on the PWM input of no more than 98%.  
 	Any higher might damage the driver / result in instability.
 	
+	Braking mode places all pins HIGH, which uses a short-circuit method to stop motors.
+	Please verify with hardware and driver's datasheet before using, as this may damage 
+	boards if used improperly.
+	
 Library usage:
 
 	Option 1:
@@ -37,7 +45,9 @@ Library usage:
 	
 	Option 2:
 		DBH1.init(IN1A, IN1B, IN2A, IN2B, ENA, ENB, CTA, CTB);	  This will define which
-			pins are used on the microcontroller.  
+			pins are used on the microcontroller.  CTA and CTB pins are optional and only
+			needed to use the GetCurrentA() and GetCurrentB() functions.  This is using the 
+			current scaling of 0.155V/A.
 	
 	Once defined the motor can be controlled by using:
 		DBH1.Forward(Motor A PWM value, Motor B PWM value);		Moves both motors forward
@@ -50,10 +60,99 @@ Library usage:
 		DBH1.ReverseB(PWM value);
 		DBH1.ToggleA();											Toggle Motor Enable state (if off, on - if on, off)
 		DBH1.ToggleB();
-		DBH1.GetCurrentA();										Returns motor current draw (50A max)
-		DBH1.GetCurrentB();										Returns motor current draw (50A max)
+		DBH1.ToggleBoth();
+		DBH1.EnableBoth();										Enables both motors
+		DBH1.GetCurrentA();										Returns motor current draw using default pin(30A max)
+		DBH1.GetCurrentB();										
+		DBH1.GetCurrentA(pin);									Returns motor current draw using specified analog pin(30A max)
+		DBH1.GetCurrentB(pin);									
+		DBH1.EnableStatusA();									Returns the current motor enable status
+		DBH1.EnableStatusB();
+		DBH1.SetBoardVoltage(voltage)							Sets the reference voltage to calculate current draw.  5V for most boards
+																such as Arduino, unless your board specifies otherwise
 		
-		
+	/*
+	DBH1 motor;
+	void setup() {
+		motor.init();  							// Default pins
+		motor.ToggleBoth();						// Enable motors
+		motor.Forward(200, 200);  				// 78% speed forward
+		float current = motor.GetCurrentA();	// Read motor current and output in Amps
+	}
+	
+	Example usage with custom pins:
+	
+	DBH1 motor;
+	void setup() {
+		motor.init(4,7,2,8,3,6,A3,A5);  		// Custom Pins (example only, motor input pins must be PWM capable.
+		motor.ToggleBoth();						// Toggle state of motors to enable
+		motor.Forward(200, 200);  				// 78% speed forward
+		float current = motor.GetCurrentA();	// Read motor current and output in Amps
+	}
+	
+	Example of return status checking.  This does not factor in any race conditions or conditions where one motor might be
+	disabled.  Both motors should be disabled on initialization to prevent accidental startup.
+	
+	DBH1 motor;
+	void setup() {
+		motor.init();  		
+			if (motor.EnableStatusA() == false && motor.EnableStatusB() == false) {
+				motor.EnableBoth();
+				Serial.println("Motors were disabled, now enabled.");
+			}
+		motor.Forward(200, 200);  				// 78% speed forward.  Motor must be enabled prior to use.
+		float current = motor.GetCurrentA();	// Read motor current and output in Amps
+	}
+	void loop() {
+												// Monitor motor states (optional)
+		Serial.print("Motor A Enabled: "); Serial.println(motor.EnableStatusA());
+		Serial.print("Motor B Enabled: "); Serial.println(motor.EnableStatusB());
+		delay(1000);
+	}
+	
+	Single Motor Control
+	
+	DBH1 motor;
+	void setup() {
+		motor.init();  		
+			if (motor.EnableStatusA() == false) {
+				motor.ToggleA();
+				Serial.println("Motor A was disabled, now enabled.");
+			}
+		motor.Forward(200);		  				// 78% speed forward
+		float current = motor.GetCurrentA();	// Read motor current and output in Amps
+	}
+	
+	Motor Braking (Please see warnings all over documentation regarding)
+	
+	DBH1 motor;
+	void setup() {
+		...Your code here...
+		motor.init();
+  		... Your code here...
+			if (motor.EnableStatusA() == true && EmerStop == true) {
+				motor.Braking();				// Uses short-circuit method to cause motor to brake.  May damage motor driver if used incorrectly
+				Serial.println("Brake enabled");
+			}
+		float current = motor.GetCurrentA();	// Read motor current and output in Amps
+	}
+	
+	Motor Coasting (Please see warnings all over documentation regarding)
+	
+	DBH1 motor;
+	void setup() {
+		...Your code here...
+		motor.init();
+  		... Your code here...
+			if (motor.EnableStatusA() == true && EmerStop == false) {
+				motor.Coasting();				// Sets all pins LOW to allow motor to free spin.
+				Serial.println("Coast enabled");
+			}
+		float current = motor.GetCurrentA();	// Read motor current and output in Amps
+	}
+	
+	*/
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
@@ -95,6 +194,8 @@ void DBH1::init(byte IN1A, byte IN1B, byte IN2A, byte IN2B, byte ENA, byte ENB, 
     this->ENB = ENB;
     this->CTA = CTA;
     this->CTB = CTB;
+	this->EnableA = false;  						// Explicitly reset to false
+    this->EnableB = false;
     pinMode(this->IN1A, OUTPUT);					//Initalize Pins
     pinMode(this->IN1B, OUTPUT);
     pinMode(this->IN2A, OUTPUT);
@@ -106,95 +207,99 @@ void DBH1::init(byte IN1A, byte IN1B, byte IN2A, byte IN2B, byte ENA, byte ENB, 
 }
 
 void DBH1::Forward(int _Apwm, int _Bpwm){
-	_Apwm = constrain(abs(_Apwm), 0, 250);  		// 250/255 ≈ 98% of 255
-	_Bpwm = constrain(abs(_Bpwm), 0, 250);  		// 250/255 ≈ 98% of 255
+	_Apwm = constrain(abs(_Apwm), 0, MAX_PWM);  		// 250/255 ≈ 98% of 255
+	_Bpwm = constrain(abs(_Bpwm), 0, MAX_PWM);  		// 250/255 ≈ 98% of 255
 	analogWrite(IN1A, _Apwm);						//PWM to 1st set of inputs
 	analogWrite(IN1B, _Bpwm);
 	DetectDirection(0);
 }
 
 void DBH1::Reverse(int _Apwm, int _Bpwm){
-	_Apwm = constrain(abs(_Apwm), 0, 250);  		// 250/255 ≈ 98% of 255
-	_Bpwm = constrain(abs(_Bpwm), 0, 250);  		// 250/255 ≈ 98% of 255
+	_Apwm = constrain(abs(_Apwm), 0, MAX_PWM);  		// 250/255 ≈ 98% of 255
+	_Bpwm = constrain(abs(_Bpwm), 0, MAX_PWM);  		// 250/255 ≈ 98% of 255
 	analogWrite(IN2A, _Apwm);						//PWM to 2nd set of inputs
 	analogWrite(IN2B, _Bpwm);
 	DetectDirection(1);
 }
 
 void DBH1::Braking(){								//Sets all pins HIGH to enable brake
-	#pragma message "Untested - Verify hardware supports before testing"
-	digitalWrite(ENA, HIGH);			
-	digitalWrite(ENB, HIGH);             
-	digitalWrite(IN1A, HIGH);
+	#pragma message "Untested - This function has not been fully tested, use at own risk"
+	digitalWrite(ENA, HIGH);						//WARNING: Verify that your motor driver will support this
+	digitalWrite(ENB, HIGH);             			//method, as it sets all pins HIGH (short-circuit braking)
+	digitalWrite(IN1A, HIGH);						//Different drivers may require specific braking outputs.
 	digitalWrite(IN1B, HIGH);
   	digitalWrite(IN2A, HIGH);
 	digitalWrite(IN2B, HIGH);      		
 }
 
 void DBH1::Coasting(){								//Disables motor and allows for free roll
-	digitalWrite(IN2A, LOW);			
+	digitalWrite(IN1A, LOW);			
 	digitalWrite(IN1B, LOW);
-	digitalWrite(IN1A, LOW);
+	digitalWrite(IN2A, LOW);
 	digitalWrite(IN2B, LOW);
   	digitalWrite(ENA, LOW);
 	digitalWrite(ENB, LOW);
 }
 
 float DBH1::GetCurrentA() {		
-    return analogRead(CTA) * (50.0 / 1023.0); 
+    return GetCurrentA(CTA);
 }
 
 float DBH1::GetCurrentB() {
-    return analogRead(CTB) * (50.0 / 1023.0);
+	return GetCurrentB(CTB);
 }
 
-float DBH1::GetCurrentA(byte AnalogPinA) {			//Reads current draw from driver and outputs back value from 0 - 1023.  Uses specified pin as input. 
-	return analogRead(AnalogPinA) * (50.0 / 1023);
+float DBH1::GetCurrentA(byte AnalogPinA) {			 
+	int rawValue = analogRead(AnalogPinA);			//Convert ADC reading to 0-5V then apply scaling to convert to Amp
+	return (rawValue * (BoardVoltage / 1023.0f)) / 0.155f;		// 0.155V/A scaling factor (verify with driver's datasheet)
 }
 
 float DBH1::GetCurrentB(byte AnalogPinB) {	
-	return analogRead(AnalogPinB) * (50.0 / 1023);
+	int rawValue = analogRead(AnalogPinB);			//Convert ADC reading to 0-5V then apply scaling to convert to Amp
+	return (rawValue * (BoardVoltage / 1023.0f)) / 0.155f;		// 0.155V/A scaling factor (verify with driver's datasheet)
 }
 
 void DBH1::ForwardA(int _Apwm){						//Individual Motor A Control Forward
-	_Apwm = constrain(abs(_Apwm), 0, 250);  		// 250/255 ≈ 98% of 255
+	_Apwm = constrain(abs(_Apwm), 0, MAX_PWM);  		
 	analogWrite(IN1A, _Apwm);
 	digitalWrite(IN2A, LOW);
 }
 
 void DBH1::ForwardB(int _Bpwm){						//Individual Motor B Control Forward
-	_Bpwm = constrain(abs(_Bpwm), 0, 250);  		// 250/255 ≈ 98% of 255
+	_Bpwm = constrain(abs(_Bpwm), 0, MAX_PWM);  		
 	analogWrite(IN1B, _Bpwm);
 	digitalWrite(IN2B, LOW);
 }
 
-void DBH1::ReverseA(int _Apwm){
-	_Apwm = constrain(abs(_Apwm), 0, 250);  		// 250/255 ≈ 98% of 255
+void DBH1::ReverseA(int _Apwm){						//Individual Motor A Control Reverse
+	_Apwm = constrain(abs(_Apwm), 0, MAX_PWM);  		
 	analogWrite(IN2A, _Apwm);
 	digitalWrite(IN1A, LOW);
 }
 
-void DBH1::ReverseB(int _Bpwm){
-	_Bpwm = constrain(abs(_Bpwm), 0, 250);  		// 250/255 ≈ 98% of 255
+void DBH1::ReverseB(int _Bpwm){						//Individual Motor B Control Reverse
+	_Bpwm = constrain(abs(_Bpwm), 0, MAX_PWM);  	
 	analogWrite(IN2B, _Bpwm);
 	digitalWrite(IN1B, LOW);
 }
 
-void DBH1::DisableA(){
-	digitalWrite(ENA, LOW);
+void DBH1::DisableA(){								//Disables Motor A Function
+	EnableA = false;
+	digitalWrite(ENA, EnableA);
 }
 
-void DBH1::DisableB(){
-	digitalWrite(ENB, LOW);
+void DBH1::DisableB(){								//Disables Motor B Function
+	EnableB = false;
+	digitalWrite(ENB, EnableB);
 }
 
-void DBH1::ToggleA(){
+void DBH1::ToggleA(){								//Toggles Motor A
 	EnableA = !EnableA;              				// Flips the state (1→0 or 0→1)
     digitalWrite(ENA, EnableA);
 }
 
-void DBH1::ToggleB(){
-	EnableB = !EnableB;              				// Flips the state (1→0 or 0→1)
+void DBH1::ToggleB(){								//Toggles Motor B
+	EnableB = !EnableB;              				
     digitalWrite(ENB, EnableB);
 }
 
@@ -205,11 +310,25 @@ void DBH1::ToggleBoth(){							//Enable Both Motors
     digitalWrite(ENB, EnableB);
 }
 
-void DBH1::DisableBoth(){
-	EnableA = LOW;
-	EnableB = LOW;
+void DBH1::DisableBoth(){							//Disables Both Motors
+	EnableA = false;
+	EnableB = false;
 	digitalWrite(ENA, EnableA);
     digitalWrite(ENB, EnableB);
+}
+
+bool DBH1::EnableStatusA(){							//Returns if motor is enabled
+	return EnableA;
+}
+
+bool DBH1::EnableStatusB(){							//Returns if motor is enabled
+	return EnableB;
+}
+
+void EnableBoth() {
+    EnableA = EnableB = true;
+    digitalWrite(ENA, HIGH);
+    digitalWrite(ENB, HIGH);
 }
 
 void DBH1::DetectDirection (int Dirdetect){			//Used to determine motor direction
@@ -225,4 +344,4 @@ void DBH1::DetectDirection (int Dirdetect){			//Used to determine motor directio
 		default:
 			break;
 	}
-	
+}
